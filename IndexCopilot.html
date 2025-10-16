@@ -1,86 +1,36 @@
-<!-- Script del widget de Copilot Studio / Omnichannel -->
-<script id="Microsoft_Omnichannel_LCWidget" src="https://oc-cdn-public-sam.azureedge.net/livechatwidget/scripts/LiveChatBootstrapper.js"
-onerror="(function(el){
-  el.parentNode.removeChild(el);
-  var s=document.createElement('script');
-  s.src='https://ocprodpublicsamgs.blob.core.windows.net/livechatwidget/scripts/LiveChatBootstrapper.js';
-  s.setAttribute('id', 'Microsoft_Omnichannel_LCWidget');
-  s.setAttribute('data-app-id', 'fa54e582-80d7-4c85-a876-83c1cd755a4e');
-  s.setAttribute('data-lcw-version', 'prod');
-  s.setAttribute('data-org-id', 'afdaec26-8d3c-ee11-94d3-002248debce1');
-  s.setAttribute('data-org-url', 'https://m-afdaec26-8d3c-ee11-94d3-002248debce1.br.omnichannelengagementhub.com');
-  document.body.appendChild(s);
-})(this);"
-data-app-id="fa54e582-80d7-4c85-a876-83c1cd755a4e"
-data-lcw-version="prod"
-data-org-id="afdaec26-8d3c-ee11-94d3-002248debce1"
-data-org-url="https://m-afdaec26-8d3c-ee11-94d3-002248debce1.br.omnichannelengagementhub.com"
-async></script>
-
-<!-- Contexto (V1: sólo peopleId) + lógica de inactividad -->
-<script>
-  // ===== Config =====
-  const IDLE_MS = 8 * 60 * 1000;   // 8 minutos
-  let idleTimer = null;
-  let chatActive = false;
-  let restarting = false;
-
-  // Contexto de V1 (sin nombre ni roles)
-  function contextProvider() {
-    return {
-      'peopleId': { value: 35.001, isDisplayable: true }
-    };
-  }
-
-  // Resetea el timer de inactividad (sólo si el chat está activo)
-  function resetIdle() {
-    if (!chatActive) return;
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => {
-      try {
-        // 1) Cerrar chat actual
-        Microsoft.Omnichannel.LiveChatWidget.SDK.closeChat();
-
-        // 2) (Opcional) Volver a iniciar una nueva charla
-        //    Pequeño delay para asegurar que la clausura terminó.
-        restarting = true;
-        setTimeout(() => {
-          Microsoft.Omnichannel.LiveChatWidget.SDK.startChat();
-          restarting = false;
-        }, 600);
-      } catch (e) {
-        console.warn('No se pudo cerrar/reiniciar el chat por inactividad:', e);
-      }
-    }, IDLE_MS);
-  }
-
-  // Eventos de actividad del usuario que "despiertan" el timer
-  ['click','keydown','mousemove','touchstart','wheel','scroll'].forEach(evt => {
-    window.addEventListener(evt, resetIdle, { passive: true });
-  });
-
-  // Eventos del SDK del widget
-  window.addEventListener('lcw:ready', function () {
-    // Setear el contexto y abrir la conversación
-    Microsoft.Omnichannel.LiveChatWidget.SDK.setContextProvider(contextProvider);
-    Microsoft.Omnichannel.LiveChatWidget.SDK.startChat();
-  });
-
-  window.addEventListener('lcw:startChat', function () {
-    chatActive = true;
-    resetIdle();
-  });
-
-  window.addEventListener('lcw:closeChat', function () {
-    chatActive = false;
-    clearTimeout(idleTimer);
-    // Si se cerró manualmente y no estamos en ciclo de reinicio, no hacemos nada.
-    if (!restarting) {
-      // Queda a elección: no reiniciar automáticamente si el usuario cerró a propósito.
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Favicon para GitHub Pages (Proyecto) -->
+<link rel="icon" href="/Copilot-test/favicon.ico?v=2" sizes="any">
+<link rel="shortcut icon" href="/Copilot-test/favicon.ico?v=2">
+<style>
+    .chatbot-button{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#8443f2;border:0;color:#fff;padding:10px 20px;border-radius:50px;cursor:pointer;z-index:1000;display:flex;align-items:center;font-family:Arial,sans-serif;box-shadow:0 4px 8px rgba(0,0,0,.1)}
+    .chatbot-button img{width:24px;height:24px;margin-right:10px;background:#fff;border-radius:5px;padding:3px}
+    .chatbot-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;justify-content:center;align-items:center}
+    .chatbot-container{position:relative;width:400px;height:600px;background:#fff;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.15);overflow:hidden;display:flex;flex-direction:column}
+    .chatbot-iframe{border:none;flex:1;width:100%}
+    .chatbot-close-btn{position:absolute;top:10px;right:10px;background:#444;color:#fff;border:0;border-radius:50%;cursor:pointer;width:30px;height:30px;font-size:16px;line-height:30px;text-align:center}
+  </style>
+</head>
+<body>
+  <button class="chatbot-button" onclick="toggleChatbot()">
+    <img src="https://play-lh.googleusercontent.com/HPKsZxDXWaXkFRUjDy2V6K57VDAkhl0PEuxG0bse01Vj0_Dl-HZqjAQN7CqnSeuaQdzG=s48-rw" alt="Chat"> Charlemos
+  </button>
+  <div id="chatbot-modal" class="chatbot-modal" role="dialog" aria-modal="true" aria-label="Chatbot">
+    <div class="chatbot-container">
+      <button class="chatbot-close-btn" onclick="toggleChatbot()">x</button>
+      <iframe id="chatbot-iframe" class="chatbot-iframe"
+        src="https://copilotstudio.microsoft.com/environments/29e76aa6-84c9-e2f6-b074-b93d496046e5/bots/cr84f_asistenteBancario/webchat?__version__=2"></iframe>
+    </div>
+  </div>
+  <script>
+    function toggleChatbot(){
+      var m=document.getElementById('chatbot-modal');
+      m.style.display=(m.style.display==='flex')?'none':'flex';
     }
-  });
-
-  window.addEventListener('lcw:error', function (err) {
-    console.error('LiveChatWidget error:', err);
-  });
-</script>
+    // Cerrar con ESC
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('chatbot-modal').style.display='none';}});
+  </script>
+</body>
+</html>
